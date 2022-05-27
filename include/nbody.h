@@ -135,6 +135,7 @@ protected:
 
 public:
     virtual Track track(const std::string &, std::size_t, std::size_t) = 0;
+    virtual ~PositionTracker() = default;
 };
 
 class BasicPositionTracker : public PositionTracker
@@ -146,8 +147,6 @@ public:
 
 class FastPositionTracker : public PositionTracker
 {
-    // BHTreeNode * root;
-
 public:
     FastPositionTracker(const std::string &);
     Track track(const std::string &, std::size_t, std::size_t) override;
