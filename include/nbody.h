@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string_view>
+#include <vector>
 
 struct Cartesian
 {
@@ -62,6 +63,8 @@ public:
     // Update net acting force-on 'b'
     void update_force(Body & b);
 };
+
+using Track = std::vector<Cartesian>;
 
 class PositionTracker
 {
