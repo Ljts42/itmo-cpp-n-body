@@ -225,12 +225,12 @@ Track BasicPositionTracker::track(const std::string & body_name, std::size_t end
     Track result;
     result.push_back(bodies[body_name]->getCoord());
     for (std::size_t cur_time = 0; cur_time < end_time; cur_time += time_step) {
-        for (auto & first : bodies) {
-            for (auto & second : bodies) {
+        for (const auto & first : bodies) {
+            for (const auto & second : bodies) {
                 first.second->add_force(*second.second);
             }
         }
-        for (auto & body : bodies) {
+        for (const auto & body : bodies) {
             body.second->update(time_step);
             body.second->reset_force();
         }
@@ -253,10 +253,10 @@ Track FastPositionTracker::track(const std::string & body_name, std::size_t end_
         for (auto & body : bodies) {
             root->insert(body.second);
         }
-        for (auto & body : bodies) {
+        for (const auto & body : bodies) {
             root->update_force(*body.second);
         }
-        for (auto & body : bodies) {
+        for (const auto & body : bodies) {
             body.second->update(time_step);
             body.second->reset_force();
         }
