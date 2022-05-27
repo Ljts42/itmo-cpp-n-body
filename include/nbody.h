@@ -117,25 +117,6 @@ public:
     // Update net acting force-on 'b'
     void update_force(Body &);
 
-    ~BHTreeNode()
-    {
-        clear(northWest);
-        clear(northEast);
-        clear(southWest);
-        clear(southEast);
-    }
-
-    void clear(std::shared_ptr<BHTreeNode> node)
-    {
-        if (node) {
-            clear(node->northWest);
-            clear(node->northEast);
-            clear(node->southWest);
-            clear(node->southEast);
-            node.reset();
-        }
-    }
-
 private:
     bool hasBody() const
     {
@@ -165,7 +146,7 @@ public:
 
 class FastPositionTracker : public PositionTracker
 {
-    BHTreeNode * root;
+    // BHTreeNode * root;
 
 public:
     FastPositionTracker(const std::string &);

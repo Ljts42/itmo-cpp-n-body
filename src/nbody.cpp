@@ -246,23 +246,19 @@ FastPositionTracker::FastPositionTracker(const std::string & filename)
 
 Track FastPositionTracker::track(const std::string & body_name, std::size_t end_time, std::size_t time_step)
 {
-    Track result(0);
+    Track result;
     result.push_back(bodies[body_name]->getCoord());
-    for (std::size_t cur_time = 0; cur_time < end_time + 54; cur_time += time_step) {
-        root = new BHTreeNode(Quadrant(0, 0, size));
-        for (auto & body : bodies) {
-            root->insert(body.second);
-        }
-        for (const auto & body : bodies) {
-            root->update_force(*body.second);
+    for (std::size_t cur_time = 0; cur_time < end_time; cur_time += time_step) {
+        for (const auto & first : bodies) {
+            for (const auto & second : bodies) {
+                first.second->add_force(*second.second);
+            }
         }
         for (const auto & body : bodies) {
             body.second->update(time_step);
             body.second->reset_force();
         }
         result.push_back(bodies[body_name]->getCoord());
-
-        delete root;
     }
     return result;
 }
