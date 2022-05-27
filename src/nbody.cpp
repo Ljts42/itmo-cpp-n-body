@@ -54,7 +54,7 @@ bool Body::in(const Quadrant q) const
     return q.contains(m_coord);
 }
 
-Body Body::plus(const Body & b)
+Body Body::plus(const Body & b) const
 {
     double m = m_weight + b.m_weight;
 
@@ -88,25 +88,25 @@ double Quadrant::length() const
     return m_length;
 }
 
-Quadrant Quadrant::nw()
+Quadrant Quadrant::nw() const
 {
     double len = m_length / 2;
     return Quadrant(m_center.x - len, m_center.y + len, len);
 }
 
-Quadrant Quadrant::ne()
+Quadrant Quadrant::ne() const
 {
     double len = m_length / 2;
     return Quadrant(m_center.x + len, m_center.y + len, len);
 }
 
-Quadrant Quadrant::sw()
+Quadrant Quadrant::sw() const
 {
     double len = m_length / 2;
     return Quadrant(m_center.x - len, m_center.y - len, len);
 }
 
-Quadrant Quadrant::se()
+Quadrant Quadrant::se() const
 {
     double len = m_length / 2;
     return Quadrant(m_center.x + len, m_center.y - len, len);
@@ -117,7 +117,7 @@ std::ostream & operator<<(std::ostream & out, const Quadrant & b)
     return out << b.m_center.x << ' ' << b.m_center.y << ' ' << b.m_length;
 }
 
-void BHTreeNode::insert(std::shared_ptr<Body> b)
+void BHTreeNode::insert(std::shared_ptr<Body> & b)
 {
     if (!hasBody() && northWest == nullptr) {
         body = b;

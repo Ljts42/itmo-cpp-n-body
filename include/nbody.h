@@ -46,10 +46,10 @@ public:
     double length() const;
 
     // The four methods below construct new Quadrant representing sub-quadrant of the invoking quadrant
-    Quadrant nw();
-    Quadrant ne();
-    Quadrant sw();
-    Quadrant se();
+    Quadrant nw() const;
+    Quadrant ne() const;
+    Quadrant sw() const;
+    Quadrant se() const;
 
     friend std::ostream & operator<<(std::ostream &, const Quadrant &);
 };
@@ -90,7 +90,7 @@ public:
     // Test if body is in quadrant
     bool in(const Quadrant) const;
     // Create new body representing center-of-mass of the invoking body and 'b'
-    Body plus(const Body &);
+    Body plus(const Body &) const;
 };
 
 // Burnes-Hut tree representation, required for Problem 2
@@ -107,13 +107,13 @@ class BHTreeNode
     std::shared_ptr<BHTreeNode> southEast = nullptr;
 
 public:
-    BHTreeNode() = default;
+    // BHTreeNode() = default;
     BHTreeNode(Quadrant qua)
         : borders(qua)
     {
     }
 
-    void insert(std::shared_ptr<Body>);
+    void insert(std::shared_ptr<Body> &);
     // Update net acting force-on 'b'
     void update_force(Body &);
 
