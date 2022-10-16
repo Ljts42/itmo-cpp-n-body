@@ -1,9 +1,7 @@
-#include <cmath>
-#include <fstream>
-#include <iostream>
+#pragma once
+
 #include <memory>
-#include <string_view>
-#include <unordered_map>
+#include <string>
 #include <vector>
 
 const double G = 6.67e-11;
@@ -15,19 +13,9 @@ struct Cartesian
     double y = 0;
 
     Cartesian() = default;
-    Cartesian(const Cartesian &) = default;
-    Cartesian(double x, double y)
-        : x(x)
-        , y(y)
-    {
-    }
+    Cartesian(double, double);
 
-    Cartesian & operator+=(const Cartesian & rhs)
-    {
-        this->x += rhs.x;
-        this->y += rhs.y;
-        return *this;
-    }
+    Cartesian & operator+=(const Cartesian &);
 };
 
 // Quadrant representation, required for Problem 2
@@ -39,7 +27,6 @@ class Quadrant
 public:
     // Create quadrant with center (x, y) and size 'lenth'
     Quadrant(Cartesian, double);
-    Quadrant(double, double, double);
 
     // Test if point (x, y) is in the quadrant
     bool contains(const Cartesian &) const;
@@ -57,21 +44,22 @@ public:
 // Single body representation, required for Problem 1 and Problem 2
 class Body
 {
-    double m_weight = -1;
+    std::string m_name;
+    double m_weight;
     Cartesian m_coord;
     Cartesian m_velocity;
-    Cartesian m_force{0, 0};
+    Cartesian m_force;
 
 public:
-    double getWeight() const { return m_weight; }
-    double getX() const { return m_coord.x; }
-    double getY() const { return m_coord.y; }
-    Cartesian getCoord() const { return m_coord; }
-    Cartesian getForse() const { return m_force; }
-    Cartesian getSpeed() const { return m_velocity; }
-
     Body() = default;
-    Body(double, Cartesian, Cartesian);
+    Body(const Body &) = default;
+    Body(const std::string &, double, Cartesian, Cartesian);
+
+    std::string getName() const;
+    double getWeight() const;
+    Cartesian getCoord() const;
+    Cartesian getForse() const;
+    Cartesian getSpeed() const;
 
     double distance(const Body &) const;
 
@@ -91,37 +79,29 @@ public:
     bool in(const Quadrant) const;
     // Create new body representing center-of-mass of the invoking body and 'b'
     Body plus(const Body &) const;
+
+    ~Body() = default;
 };
 
 // Burnes-Hut tree representation, required for Problem 2
 class BHTreeNode
 {
-    double weight;
-    Cartesian mass_center;
-    Quadrant borders;
-    std::shared_ptr<Body> body = nullptr;
+    double m_total_weight = 0;
+    Cartesian m_mass_center{0, 0};
+    Quadrant m_borders;
+    std::unique_ptr<Body> m_body = nullptr;
 
-    std::shared_ptr<BHTreeNode> northWest = nullptr;
-    std::shared_ptr<BHTreeNode> northEast = nullptr;
-    std::shared_ptr<BHTreeNode> southWest = nullptr;
-    std::shared_ptr<BHTreeNode> southEast = nullptr;
+    std::unique_ptr<BHTreeNode> m_nw = nullptr;
+    std::unique_ptr<BHTreeNode> m_ne = nullptr;
+    std::unique_ptr<BHTreeNode> m_sw = nullptr;
+    std::unique_ptr<BHTreeNode> m_se = nullptr;
 
 public:
-    // BHTreeNode() = default;
-    BHTreeNode(Quadrant qua)
-        : borders(qua)
-    {
-    }
+    BHTreeNode(const Quadrant &);
 
-    void insert(std::shared_ptr<Body> &);
+    void insert(const Body &);
     // Update net acting force-on 'b'
     void update_force(Body &);
-
-private:
-    bool hasBody() const
-    {
-        return body != nullptr;
-    }
 };
 
 using Track = std::vector<Cartesian>;
@@ -129,8 +109,8 @@ using Track = std::vector<Cartesian>;
 class PositionTracker
 {
 protected:
-    std::unordered_map<std::string, std::shared_ptr<Body>> bodies;
-    double size;
+    std::vector<Body> m_bodies;
+    double m_size;
     PositionTracker(const std::string &);
 
 public:
@@ -142,12 +122,16 @@ class BasicPositionTracker : public PositionTracker
 {
 public:
     BasicPositionTracker(const std::string &);
+    ~BasicPositionTracker() = default;
     Track track(const std::string &, std::size_t, std::size_t) override;
 };
 
 class FastPositionTracker : public PositionTracker
 {
+    BHTreeNode * m_root;
+
 public:
     FastPositionTracker(const std::string &);
     Track track(const std::string &, std::size_t, std::size_t) override;
+    ~FastPositionTracker() = default;
 };
