@@ -17,6 +17,26 @@ Cartesian & Cartesian::operator+=(const Cartesian & rhs)
     return *this;
 }
 
+Cartesian operator+(Cartesian const & lhs, Cartesian const & rhs)
+{
+    return {lhs.x + rhs.x, lhs.y + rhs.y};
+}
+
+Cartesian operator-(Cartesian const & lhs, Cartesian const & rhs)
+{
+    return {lhs.x - rhs.x, lhs.y - rhs.y};
+}
+
+Cartesian Cartesian::operator*(double number) const
+{
+    return {x * number, y * number};
+}
+
+Cartesian Cartesian::operator/(double number) const
+{
+    return {x / number, y / number};
+}
+
 Quadrant::Quadrant(Cartesian center, double length)
     : m_center(center)
     , m_length(length)
@@ -35,31 +55,31 @@ double Quadrant::length() const
 
 Quadrant Quadrant::nw() const
 {
-    double len = m_length / 2;
-    return Quadrant({m_center.x - len, m_center.y + len}, len);
+    double len = m_length / 4;
+    return Quadrant({m_center.x - len, m_center.y + len}, len * 2);
 }
 
 Quadrant Quadrant::ne() const
 {
-    double len = m_length / 2;
-    return Quadrant({m_center.x + len, m_center.y + len}, len);
+    double len = m_length / 4;
+    return Quadrant({m_center.x + len, m_center.y + len}, len * 2);
 }
 
 Quadrant Quadrant::sw() const
 {
-    double len = m_length / 2;
-    return Quadrant({m_center.x - len, m_center.y - len}, len);
+    double len = m_length / 4;
+    return Quadrant({m_center.x - len, m_center.y - len}, len * 2);
 }
 
 Quadrant Quadrant::se() const
 {
-    double len = m_length / 2;
-    return Quadrant({m_center.x + len, m_center.y - len}, len);
+    double len = m_length / 4;
+    return Quadrant({m_center.x + len, m_center.y - len}, len * 2);
 }
 
 std::ostream & operator<<(std::ostream & out, const Quadrant & b)
 {
-    return out << b.m_center.x << ' ' << b.m_center.y << ' ' << b.m_length;
+    return out << b.m_center.x << ' ' << b.m_center.y << ' ' << b.length();
 }
 
 Body::Body(const std::string & name, double weight, Cartesian coord, Cartesian velocity)
@@ -90,14 +110,14 @@ Cartesian Body::getForse() const
     return m_force;
 }
 
-Cartesian Body::getSpeed() const
+Cartesian Body::getVelocity() const
 {
     return m_velocity;
 }
 
 double Body::distance(const Body & body) const
 {
-    return std::hypot(m_coord.x - body.m_coord.x, m_coord.y - body.m_coord.y);
+    return std::hypot(m_coord.x - body.getCoord().x, m_coord.y - body.getCoord().y);
 }
 
 void Body::add_force(const Body & body)
@@ -106,9 +126,8 @@ void Body::add_force(const Body & body)
     if (r == 0) {
         return;
     }
-    double F = G * (m_weight / r) * (body.m_weight / r);
-    m_force += Cartesian(F * (body.m_coord.x - m_coord.x) / r,
-                         F * (body.m_coord.y - m_coord.y) / r);
+    double F = G * (m_weight / r) * (body.getWeight() / r);
+    m_force += (body.getCoord() - m_coord) * F / r;
 }
 
 void Body::reset_force()
@@ -119,15 +138,14 @@ void Body::reset_force()
 
 void Body::update(double delta_t)
 {
-    double a_x = m_force.x / m_weight;
-    double a_y = m_force.y / m_weight;
-    m_velocity += Cartesian(a_x * delta_t, a_y * delta_t);
-    m_coord += Cartesian(m_velocity.x * delta_t, m_velocity.y * delta_t);
+    Cartesian acceleration = m_force / m_weight;
+    m_velocity += acceleration * delta_t;
+    m_coord += m_velocity * delta_t;
 }
 
 std::ostream & operator<<(std::ostream & out, const Body & b)
 {
-    return out << b.m_coord.x << ' ' << b.m_coord.y << ' ' << b.m_velocity.x << ' ' << b.m_velocity.y << ' ' << b.m_weight << ' ' << b.m_name;
+    return out << b.getCoord().x << ' ' << b.getCoord().y << ' ' << b.getVelocity().x << ' ' << b.getVelocity().y << ' ' << b.getWeight() << ' ' << b.getName();
 }
 
 std::istream & operator>>(std::istream & inp, Body & b)
@@ -142,13 +160,10 @@ bool Body::in(const Quadrant q) const
 
 Body Body::plus(const Body & b) const
 {
-    double m = m_weight + b.m_weight;
-    double x = (m_coord.x * m_weight + b.m_coord.x * b.m_weight) / m;
-    double y = (m_coord.y * m_weight + b.m_coord.y * b.m_weight) / m;
-
-    double v_x = m_velocity.x * (m_weight / m) + b.m_velocity.x * (b.m_weight / m);
-    double v_y = m_velocity.y * (m_weight / m) + b.m_velocity.y * (b.m_weight / m);
-    return Body(m_name, m, Cartesian(x, y), Cartesian(v_x, v_y));
+    double m = m_weight + b.getWeight();
+    Cartesian coord = (m_coord * m_weight + b.getCoord() * b.getWeight()) / m;
+    Cartesian velocity = (m_velocity * m_weight + b.getVelocity() * b.getWeight()) / m;
+    return Body(m_name, m, coord, velocity);
 }
 
 BHTreeNode::BHTreeNode(const Quadrant & quadrant)
@@ -171,50 +186,32 @@ void BHTreeNode::insert(const Body & b)
             m_se = std::make_unique<BHTreeNode>(m_borders.se());
         }
 
-        double x = m_mass_center.x * m_total_weight + b.getCoord().x * b.getWeight();
-        double y = m_mass_center.y * m_total_weight + b.getCoord().y * b.getWeight();
+        m_mass_center = (m_mass_center * m_total_weight + b.getCoord() * b.getWeight()) / (m_total_weight + b.getWeight());
         m_total_weight += b.getWeight();
-        m_mass_center = Cartesian(x / m_total_weight, y / m_total_weight);
 
         if (m_body) {
-            if (m_body->in(m_nw->m_borders) && !b.in(m_nw->m_borders)) {
-                m_nw->insert(*m_body);
-            }
-            else if (m_body->in(m_ne->m_borders) && !b.in(m_nw->m_borders)) {
-                m_ne->insert(*m_body);
-            }
-            else if (m_body->in(m_sw->m_borders) && !b.in(m_nw->m_borders)) {
-                m_sw->insert(*m_body);
-            }
-            else if (m_body->in(m_se->m_borders) && !b.in(m_se->m_borders)) {
-                m_se->insert(*m_body);
-            }
-            else if (m_body->in(m_se->m_borders)) {
-                m_se->insert(*m_body);
-            }
-            else if (m_body->in(m_sw->m_borders)) {
-                m_sw->insert(*m_body);
-            }
-            else if (m_body->in(m_ne->m_borders)) {
-                m_ne->insert(*m_body);
-            }
-            else {
-                m_nw->insert(*m_body);
-            }
-            m_body = nullptr;
+            std::unique_ptr<BHTreeNode> & quad = select_quad(*m_body);
+            quad->insert(*m_body);
+            m_body.reset();
         }
-        if (b.in(m_nw->m_borders)) {
-            m_nw->insert(b);
-        }
-        else if (b.in(m_ne->m_borders)) {
-            m_ne->insert(b);
-        }
-        else if (b.in(m_sw->m_borders)) {
-            m_sw->insert(b);
-        }
-        else {
-            m_se->insert(b);
-        }
+        std::unique_ptr<BHTreeNode> & quad = select_quad(b);
+        quad->insert(b);
+    }
+}
+
+std::unique_ptr<BHTreeNode> & BHTreeNode::select_quad(const Body & b)
+{
+    if (b.in(m_nw->m_borders)) {
+        return m_nw;
+    }
+    else if (b.in(m_ne->m_borders)) {
+        return m_ne;
+    }
+    else if (b.in(m_sw->m_borders)) {
+        return m_sw;
+    }
+    else {
+        return m_se;
     }
 }
 
@@ -264,12 +261,14 @@ Track BasicPositionTracker::track(const std::string & body_name, std::size_t end
 
     Track result;
     result.push_back(m_bodies[ind].getCoord());
+
     for (std::size_t cur_time = 0; cur_time < end_time; cur_time += time_step) {
         for (auto & first : m_bodies) {
             for (const auto & second : m_bodies) {
                 first.add_force(second);
             }
         }
+
         for (auto & body : m_bodies) {
             body.update(time_step);
             body.reset_force();
@@ -293,20 +292,22 @@ Track FastPositionTracker::track(const std::string & body_name, std::size_t end_
 
     Track result;
     result.push_back(m_bodies[ind].getCoord());
+
     for (std::size_t cur_time = 0; cur_time < end_time; cur_time += time_step) {
-        m_root = new BHTreeNode(Quadrant({0, 0}, m_size));
+        m_root = std::make_unique<BHTreeNode>(Quadrant({0, 0}, m_size));
 
         for (const auto & body : m_bodies) {
             m_root->insert(body);
         }
+
         for (std::size_t i = 0; i < m_bodies.size(); ++i) {
             m_root->update_force(m_bodies[i]);
             m_bodies[i].update(time_step);
             m_bodies[i].reset_force();
         }
         result.push_back(m_bodies[ind].getCoord());
-        delete m_root;
-        m_root = nullptr;
+
+        m_root.reset();
     }
     return result;
 }

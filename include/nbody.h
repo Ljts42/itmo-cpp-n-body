@@ -16,6 +16,11 @@ struct Cartesian
     Cartesian(double, double);
 
     Cartesian & operator+=(const Cartesian &);
+    Cartesian operator*(double) const;
+    Cartesian operator/(double) const;
+
+    friend Cartesian operator+(Cartesian const &, Cartesian const &);
+    friend Cartesian operator-(Cartesian const &, Cartesian const &);
 };
 
 // Quadrant representation, required for Problem 2
@@ -44,11 +49,11 @@ public:
 // Single body representation, required for Problem 1 and Problem 2
 class Body
 {
-    std::string m_name;
-    double m_weight;
-    Cartesian m_coord;
-    Cartesian m_velocity;
-    Cartesian m_force;
+    std::string m_name = "";
+    double m_weight = 0;
+    Cartesian m_coord{0, 0};
+    Cartesian m_velocity{0, 0};
+    Cartesian m_force{0, 0};
 
 public:
     Body() = default;
@@ -59,7 +64,7 @@ public:
     double getWeight() const;
     Cartesian getCoord() const;
     Cartesian getForse() const;
-    Cartesian getSpeed() const;
+    Cartesian getVelocity() const;
 
     double distance(const Body &) const;
 
@@ -96,6 +101,8 @@ class BHTreeNode
     std::unique_ptr<BHTreeNode> m_sw = nullptr;
     std::unique_ptr<BHTreeNode> m_se = nullptr;
 
+    std::unique_ptr<BHTreeNode> & select_quad(const Body &);
+
 public:
     BHTreeNode(const Quadrant &);
 
@@ -128,7 +135,7 @@ public:
 
 class FastPositionTracker : public PositionTracker
 {
-    BHTreeNode * m_root;
+    std::unique_ptr<BHTreeNode> m_root;
 
 public:
     FastPositionTracker(const std::string &);
