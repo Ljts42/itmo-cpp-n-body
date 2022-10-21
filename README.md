@@ -168,6 +168,8 @@ public:
 ```
 
 ```
+using Track = std::vector<Cartesian>;
+
 class PositionTracker
 {
 protected:
